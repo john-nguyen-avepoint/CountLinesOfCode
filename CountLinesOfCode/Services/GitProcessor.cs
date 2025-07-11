@@ -32,14 +32,15 @@ namespace CountLinesOfCode.Services
                 var commits = new List<CommitDetail>();
                 if (!string.IsNullOrWhiteSpace(commitOutput))
                 {
-                    commits = commitOutput.Split('\n', (char)StringSplitOptions.RemoveEmptyEntries)
+                    commits = commitOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
                         .Select(line => line.Split('|'))
-                        .Where(parts => parts.Length >= 2) // Ensure at least 3 parts (hash, message, date)
+                        .Where(parts => parts.Length >= 2) // Ensure at least 2 parts (hash, message)
                         .Select(parts => new CommitDetail
                         {
                             Hash = parts[0],
                             Message = parts[1]
                         })
+                        .Where(p => !p.Message.ToLower().StartsWith("merge branch")) // Exclude merge commits
                         .ToList();
                 }
 

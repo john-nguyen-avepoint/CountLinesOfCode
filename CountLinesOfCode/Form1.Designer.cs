@@ -132,7 +132,7 @@ namespace CountLinesOfCode
             this.chkShowCommits.Text = "";
             this.chkShowCommits.Location = new System.Drawing.Point(130, 240);
             this.chkShowCommits.Size = new System.Drawing.Size(20, 20);
-            this.chkShowCommits.Checked = true;
+            this.chkShowCommits.Checked = false;
 
             // btnProcess
             this.btnProcess.Text = "Count Changed Lines";
@@ -274,11 +274,22 @@ namespace CountLinesOfCode
                     var (added, removed, total, commitCount, commits) = GitProcessor.CountChangedLines(
                         author, startDate, endDate, branch, repoPath);
 
+                    var repoResult = new RepositoryResult
+                    {
+                        Path = repoPath,
+                        AddedLines = added,
+                        RemovedLines = removed,
+                        TotalChangedLines = total,
+                        CommitCount = commitCount,
+                    };
                     outputText += $"\r\nRepository: {repoPath}\r\n";
                     outputText += $"Added lines: {added}\r\n";
                     outputText += $"Removed lines: {removed}\r\n";
                     outputText += $"Total changed lines: {total}\r\n";
                     outputText += $"Total commits: {commitCount}\r\n";
+                    outputText += $"Added lines / Remove lines: {repoResult.AddPerRemovePercentage}\r\n";
+                    outputText += $"Added lines / Total changed lines: {repoResult.AddPerTotalPercentage}\r\n";
+                    outputText += $"Removed lines / Total changed lines: {repoResult.RemovePerTotalPercentage}\r\n";
                     if (showCommits)
                     {
                         outputText += "Commits:\r\n";
@@ -288,14 +299,6 @@ namespace CountLinesOfCode
                         }
                     }
 
-                    var repoResult = new RepositoryResult
-                    {
-                        Path = repoPath,
-                        AddedLines = added,
-                        RemovedLines = removed,
-                        TotalChangedLines = total,
-                        CommitCount = commitCount
-                    };
                     if (showCommits)
                     {
                         repoResult.Commits = commits;
