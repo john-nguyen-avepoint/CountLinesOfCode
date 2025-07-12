@@ -8,19 +8,20 @@ namespace CountLinesCodeChanged_V3.Logic
         {
             var stats = new List<RepositoryStats>();
             var cache = CacheManager.LoadCache();
-
+            var needToSaveCache = false;
             foreach (var repoPath in repoPaths)
             {
                 using (var repo = new Repository(repoPath))
                 {
                     var lastCommit = repo.Commits.FirstOrDefault();
                     // Check if cache is valid for each repository
-                    if (lastCommit != null && CacheManager.IsCacheValid(repoPath, lastCommit.Committer.When.DateTime))
+                    if (lastCommit != null && CacheManager.IsCacheValid(repoPath, lastCommit.Committer.When.DateTime, startDate, endDate))
                     {
                         // If cache is valid, add stats from cache
                         stats.AddRange(cache[repoPath].Stats);
                         continue;
                     }
+                    needToSaveCache = true; // Mark that we need to save cache later
                     // If cache is not valid, process repository
                     var repoName = Path.GetFileName(repoPath);
                     var branchCommits = repo.Branches[branch]?.Commits
@@ -59,14 +60,24 @@ namespace CountLinesCodeChanged_V3.Logic
                     stats.AddRange(authorStats);
 
                     // Update cache with new stats
-                    cache[repoPath] = (lastCommit?.Committer.When.DateTime ?? DateTime.Now, authorStats);
+                    cache[repoPath] = new CacheManager.SerializableCacheEntry()
+                    {
+                        DateTimeStart = startDate,
+                        DateTimeEnd = endDate,
+                        Stats = authorStats,
+                        LastCheck = DateTime.Now
+                    };
                 }
             }
             // Save cache
-            CacheManager.SaveCache(cache);
+            if (needToSaveCache)
+            {
+                CacheManager.SaveCache(cache);
+            }
             return stats.OrderBy(p => p.RepoName)
-                .OrderByDescending(p => p.CommitCount)
-                .OrderByDescending(p => p.AddedLines).ToList();
+                .ThenByDescending(p => p.CommitCount)
+                .ThenByDescending(p => p.AddedLines)
+                .ToList();
         }
 
         public static List<(string RepoName, int TotalCommits, int TotalAuthors, int TotalAdded, int TotalRemoved, double AddPerRemove, double AddPerTotal, double RemovePerTotal)> GetSummary(List<RepositoryStats> stats)

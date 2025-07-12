@@ -27,6 +27,7 @@ namespace CountLinesCodeChanged_V3
         private Label lblMessage;
         private List<string> repoPaths = new List<string>();
         private List<RepositoryStats> allStats = new List<RepositoryStats>();
+        private List<RepositoryStats> statByAuthor = new List<RepositoryStats>();
 
         public MainForm()
         {
@@ -47,7 +48,7 @@ namespace CountLinesCodeChanged_V3
             // Message label
             lblMessage = new Label
             {
-                Text = "Please fill in all required fields: at least one repository path.",
+                Text = "Please fill or select least one repository path.",
                 AutoSize = true,
                 Location = new Point(230, 140),
                 ForeColor = Color.Red,
@@ -68,12 +69,12 @@ namespace CountLinesCodeChanged_V3
             // Start Date label and control
             var lblStartDate = new Label { Text = "Start Date:", AutoSize = true, Location = new Point(540, 20) };
             dtpStartDate = new DateTimePicker { Format = DateTimePickerFormat.Short, Size = new Size(150, 40), Location = new Point(640, 20), Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month - 6, 1) };
-            dtpStartDate.ValueChanged += (s, e) => UpdateCountButtonState();
+            dtpStartDate.ValueChanged += (s, e) => { dtpStartDate.Value = dtpStartDate.Value.Date; UpdateCountButtonState(); };
 
             // End Date label and control
             var lblEndDate = new Label { Text = "End Date:", AutoSize = true, Location = new Point(540, 55) };
-            dtpEndDate = new DateTimePicker { Format = DateTimePickerFormat.Short, Size = new Size(150, 40), Location = new Point(640, 50), Value = DateTime.Now };
-            dtpEndDate.ValueChanged += (s, e) => UpdateCountButtonState();
+            dtpEndDate = new DateTimePicker { Format = DateTimePickerFormat.Short, Size = new Size(150, 40), Location = new Point(640, 50), Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 23, 59, 59) };
+            dtpEndDate.ValueChanged += (s, e) => { dtpEndDate.Value = dtpEndDate.Value.Date.AddHours(23).AddMinutes(59).AddSeconds(59); UpdateCountButtonState(); };
 
             // Branch label and text box
             var lblBranch = new Label { Text = "Branch:", AutoSize = true, Location = new Point(540, 90) };
@@ -104,7 +105,7 @@ namespace CountLinesCodeChanged_V3
             var lblSummary = new Label { Text = "Summary:", AutoSize = true, Location = new Point(20, 200) };
             dgvSummary = new DataGridView
             {
-                Size = new Size(600, 140),
+                Size = new Size(500, 140),
                 Location = new Point(20, 180),
                 RowHeadersVisible = false,
                 AllowUserToAddRows = false,
@@ -116,23 +117,23 @@ namespace CountLinesCodeChanged_V3
             };
             SetupSummaryDataGridView();
 
-            var lblSummaryForAuthor = new Label { Text = "Summary For Author: ", AutoSize = true, Location = new Point(640, 150) };
+            var lblSummaryForAuthor = new Label { Text = "Summary For Author: ", AutoSize = true, Location = new Point(540, 150) };
             txtSearchSummaryForAuthor = new TextBox
             {
                 PlaceholderText = "Search by author...",
                 Size = new Size(300, 40),
-                Location = new Point(720, 145)
+                Location = new Point(670, 145)
             };
 
             txtSearchSummaryForAuthor.TextChanged += (s, e) =>
             {
-                UpdateSummaryForAuthorDataGridView(allStats);
+                UpdateSummaryForAuthorDataGridView(statByAuthor);
             };
 
             dgvSummaryForAuthor = new DataGridView
             {
                 Size = new Size(600, 140),
-                Location = new Point(640, 180),
+                Location = new Point(540, 180),
                 RowHeadersVisible = false,
                 AllowUserToAddRows = false,
                 ScrollBars = ScrollBars.Both,
@@ -273,9 +274,19 @@ namespace CountLinesCodeChanged_V3
             {
                 Cursor = Cursors.WaitCursor; // Đặt con trỏ quay
                 allStats = GitProcessor.ProcessRepositories(repoPaths, dtpStartDate.Value, dtpEndDate.Value, txtBranch.Text);
+                statByAuthor = allStats.GroupBy(x => x.Author)
+                .Select(x => new RepositoryStats
+                {
+                    Author = x.Key,
+                    RepoName = string.Join("; ", x.Select(p => p.RepoName).Distinct()),
+                    Branch = x.First().Branch,
+                    CommitCount = x.Sum(y => y.CommitCount),
+                    AddedLines = x.Sum(y => y.AddedLines),
+                    RemovedLines = x.Sum(y => y.RemovedLines)
+                }).ToList();
                 UpdateSummary();
                 UpdateDataGridView(allStats);
-                UpdateSummaryForAuthorDataGridView(allStats);
+                UpdateSummaryForAuthorDataGridView(statByAuthor);
             }
             catch (Exception ex)
             {
@@ -329,31 +340,24 @@ namespace CountLinesCodeChanged_V3
         private void UpdateSummaryForAuthorDataGridView(List<RepositoryStats> stats)
         {
             dgvSummaryForAuthor.Rows.Clear();
-            var summaryForAuthor = stats.GroupBy(x => x.Author)
-                .Select(x => new
-                {
-                    Author = x.Key,
-                    RepoName = string.Join(";", x.Select(p => p.RepoName).Distinct()),
-                    Branch = string.Join(";", x.Select(p => p.Branch).Distinct()),
-                    TotalCommits = x.Sum(y => y.CommitCount),
-                    TotalAdded = x.Sum(y => y.AddedLines),
-                    TotalRemoved = x.Sum(y => y.RemovedLines),
-                    TotalChangedLines = x.Sum(y => y.TotalChangedLines),
-                }).ToList();
-            foreach (var stat in summaryForAuthor)
+            var filteredStats = string.IsNullOrEmpty(txtSearchSummaryForAuthor.Text)
+                ? stats
+                : stats.Where(s => s.Author.ToLower().Contains(txtSearchSummaryForAuthor.Text.ToLower()))
+                .ToList();
+            foreach (var stat in filteredStats)
             {
-                var removedLines = stat.TotalAdded == 0 ? 1 : stat.TotalAdded;
+                var removedLines = stat.RemovedLines == 0 ? 1 : stat.RemovedLines;
                 dgvSummaryForAuthor.Rows.Add(
                     stat.Author,
                     stat.RepoName,
                     stat.Branch,
-                    stat.TotalCommits,
-                    stat.TotalAdded,
-                    stat.TotalRemoved,
+                    stat.CommitCount,
+                    stat.AddedLines,
+                    stat.RemovedLines,
                     stat.TotalChangedLines,
-                    Math.Round((double)(stat.TotalAdded / removedLines), 2),
-                    Math.Round((double)(stat.TotalAdded / stat.TotalChangedLines), 2),
-                    Math.Round((double)stat.TotalRemoved / stat.TotalChangedLines, 2)
+                    Math.Round((double)(stat.AddedLines / removedLines), 2),
+                    Math.Round((double)(stat.AddedLines / stat.TotalChangedLines), 2),
+                    Math.Round((double)stat.RemovedLines / stat.TotalChangedLines, 2)
                 );
             }
         }
