@@ -15,7 +15,11 @@ namespace CountLinesCodeChanged_V3.Logic
                 {
                     var lastCommit = repo.Commits.FirstOrDefault();
                     // Check if cache is valid for each repository
-                    if (lastCommit != null && CacheManager.IsCacheValid(repoPath, lastCommit.Committer.When.DateTime, startDate, endDate))
+                    if (lastCommit != null && CacheManager.IsCacheValid(repoPath,
+                        lastCommit.Committer.When.DateTime,
+                        startDate,
+                        endDate,
+                        branch))
                     {
                         // If cache is valid, add stats from cache
                         stats.AddRange(cache[repoPath].Stats);
@@ -25,7 +29,9 @@ namespace CountLinesCodeChanged_V3.Logic
                     // If cache is not valid, process repository
                     var repoName = Path.GetFileName(repoPath);
                     var branchCommits = repo.Branches[branch]?.Commits
-                        .Where(c => !c.Message.ToLower().StartsWith("merge branch") && c.Committer.When.DateTime >= startDate && c.Committer.When.DateTime <= endDate)
+                        .Where(c => !c.Message.ToLower().StartsWith("merge branch")
+                        && c.Committer.When.DateTime >= startDate &&
+                        c.Committer.When.DateTime <= endDate)
                         .ToList() ?? new List<Commit>();
 
                     var authorStats = branchCommits

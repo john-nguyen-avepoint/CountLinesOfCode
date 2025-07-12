@@ -8,23 +8,13 @@ namespace CountLinesCodeChanged_V3.Logic
 
         public static void SaveCache(Dictionary<string, SerializableCacheEntry> cache)
         {
-            // Convert the dictionary to a serializable format
-            //var serializableCache = cache.ToDictionary(
-            //    kvp => kvp.Key,
-            //    kvp => new SerializableCacheEntry
-            //    {
-            //        LastCheck = DateTime.Now,
-            //        DateTimeStart = kvp.Value.DateStart,
-            //        DateTimeEnd = kvp.Value.DateEnd,
-            //        Stats = kvp.Value.Stats
-            //    }
-            //);
             File.WriteAllText(CacheFile, JsonSerializer.Serialize(cache));
         }
 
         // Make SerializableCacheEntry public to fix CS0050
         public class SerializableCacheEntry
         {
+            public string BranchName { get; set; }
             public DateTime LastCheck { get; set; }
             public DateTime DateTimeStart { get; set; }
             public DateTime DateTimeEnd { get; set; }
@@ -38,19 +28,31 @@ namespace CountLinesCodeChanged_V3.Logic
             return result ?? new Dictionary<string, SerializableCacheEntry>();
         }
 
-        public static bool IsCacheValid(string repoPath, DateTime lastCommit, DateTime dateStart, DateTime dateEnd)
+        public static bool IsCacheValid(string repoPath,
+            DateTime lastCommit,
+            DateTime dateStart,
+            DateTime dateEnd,
+            string branch)
         {
             var cache = LoadCache();
-            
-            if(lastCommit > dateEnd || lastCommit < dateStart)
+
+            if (lastCommit > dateEnd || lastCommit < dateStart)
             {
                 return false; // If the last commit is outside the requested date range, cache is invalid
             }
             if (cache.TryGetValue(repoPath, out var data))
             {
-                if (data.LastCheck.AddDays(1) < DateTime.Now)
+                if (branch != data.BranchName)
+                {
+                    return false;
+                }
+                if (data.LastCheck.AddHours(1) < DateTime.Now)
                 {
                     return false; // refresh cache if last check was more than a day ago
+                }
+                if (data.Stats.SelectMany(p => p.Commits).OrderByDescending(p => p.Date).FirstOrDefault()?.Date >= lastCommit)
+                {
+                    return false;
                 }
                 if (data.DateTimeStart <= dateStart && data.DateTimeEnd >= dateEnd)
                 {
