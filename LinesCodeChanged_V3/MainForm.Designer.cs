@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 namespace CountLinesCodeChanged_V3
 {
-    public class MainForm : Form
+    public partial class MainForm : Form
     {
         private Button btnSelectRepos;
         private Button btnAddPath;
@@ -34,12 +34,12 @@ namespace CountLinesCodeChanged_V3
         // Trong phương thức InitializeComponents, thay toàn bộ code bằng:
         private void InitializeComponents()
         {
-            this.Size = new Size(1500, 1000);
+            this.Size = new Size(1300, 1000);
             this.Text = "Code Line Counter";
-            this.Font = new Font("Segoe UI", 12);
+            this.Font = new Font("Segoe UI", 11);
 
             // Repository selection
-            btnSelectRepos = new Button { Text = "Select Repositories", Size = new Size(200, 40), Location = new Point(430, 20) };
+            btnSelectRepos = new Button { Text = "Select\nRepositories", Size = new Size(100, 100), Location = new Point(430, 20) };
             btnSelectRepos.Click += BtnSelectRepos_Click;
 
             // Message label
@@ -47,7 +47,7 @@ namespace CountLinesCodeChanged_V3
             {
                 Text = "Please fill in all required fields: at least one repository path, a branch, and valid date range.",
                 AutoSize = true,
-                Location = new Point(490, 240),
+                Location = new Point(230, 140),
                 ForeColor = Color.Red,
                 Visible = true
             };
@@ -64,45 +64,45 @@ namespace CountLinesCodeChanged_V3
             txtRepoPaths.TextChanged += TxtRepoPaths_TextChanged;
 
             // Start Date label and control
-            var lblStartDate = new Label { Text = "Start Date:", AutoSize = true, Location = new Point(20, 130) };
-            dtpStartDate = new DateTimePicker { Format = DateTimePickerFormat.Short, Size = new Size(150, 40), Location = new Point(120, 130), Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month - 6, 1) };
+            var lblStartDate = new Label { Text = "Start Date:", AutoSize = true, Location = new Point(540, 20) };
+            dtpStartDate = new DateTimePicker { Format = DateTimePickerFormat.Short, Size = new Size(150, 40), Location = new Point(640, 20), Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month - 6, 1) };
             dtpStartDate.ValueChanged += (s, e) => UpdateCountButtonState();
 
             // End Date label and control
-            var lblEndDate = new Label { Text = "End Date:", AutoSize = true, Location = new Point(20, 180) };
-            dtpEndDate = new DateTimePicker { Format = DateTimePickerFormat.Short, Size = new Size(150, 40), Location = new Point(120, 180), Value = DateTime.Now };
+            var lblEndDate = new Label { Text = "End Date:", AutoSize = true, Location = new Point(540, 55) };
+            dtpEndDate = new DateTimePicker { Format = DateTimePickerFormat.Short, Size = new Size(150, 40), Location = new Point(640, 50), Value = DateTime.Now };
             dtpEndDate.ValueChanged += (s, e) => UpdateCountButtonState();
 
             // Branch label and text box
-            var lblBranch = new Label { Text = "Branch:", AutoSize = true, Location = new Point(20, 230) };
-            txtBranch = new TextBox { PlaceholderText = "Enter branch name...", Size = new Size(150, 40), Location = new Point(120, 230), Text = "main" };
+            var lblBranch = new Label { Text = "Branch:", AutoSize = true, Location = new Point(540, 90) };
+            txtBranch = new TextBox { PlaceholderText = "Enter branch name...", Size = new Size(150, 40), Location = new Point(640, 85), Text = "main" };
             txtBranch.TextChanged += (s, e) => UpdateCountButtonState();
 
             // Count lines button
-            btnCountLines = new Button { Text = "Count Changed Lines", Size = new Size(200, 40), Location = new Point(280, 225), BackColor = Color.LightGreen };
-            btnCountLines.Enabled = false;
+            btnCountLines = new Button { Text = "Retrieve", Size = new Size(200, 40), Location = new Point(20, 130), BackColor = Color.LightBlue };
+            btnCountLines.Enabled = true;
             btnCountLines.Click += BtnCountLines_Click;
 
             // Search label and bar
-            var lblSearch = new Label { Text = "Search:", AutoSize = true, Location = new Point(20, 280) };
-            txtSearch = new TextBox { PlaceholderText = "Search by author...", Size = new Size(300, 40), Location = new Point(120, 280) };
+            var lblSearch = new Label { Text = "Search:", AutoSize = true, Location = new Point(20, 180) };
+            txtSearch = new TextBox { PlaceholderText = "Search by author, repository...", Size = new Size(300, 40), Location = new Point(100, 175) };
             txtSearch.TextChanged += TxtSearch_TextChanged;
 
             // Save JSON button
-            btnSaveJson = new Button { Text = "Save JSON", Size = new Size(100, 40), Location = new Point(720, 275), BackColor = Color.LightBlue };
-            btnSaveJson.Enabled = false;
+            btnSaveJson = new Button { Text = "Save JSON", Size = new Size(100, 40), Location = new Point(920, 170), BackColor = Color.LightBlue };
+            btnSaveJson.Enabled = true;
             btnSaveJson.Click += BtnSaveJson_Click;
 
             // Save CSV button
-            btnSaveCsv = new Button { Text = "Save CSV", Size = new Size(100, 40), Location = new Point(830, 275), BackColor = Color.LightBlue };
-            btnSaveCsv.Enabled = false;
+            btnSaveCsv = new Button { Text = "Save CSV", Size = new Size(100, 40), Location = new Point(1030, 170), BackColor = Color.LightBlue };
+            btnSaveCsv.Enabled = true;
             btnSaveCsv.Click += BtnSaveCsv_Click;
 
             // Summary panel
             dgvSummary = new DataGridView
             {
-                Size = new Size(1200, 150),
-                Location = new Point(20, 320),
+                Size = new Size(1130, 150),
+                Location = new Point(20, 210),
                 RowHeadersVisible = false,
                 AllowUserToAddRows = false,
                 ScrollBars = ScrollBars.Both,
@@ -116,8 +116,8 @@ namespace CountLinesCodeChanged_V3
             // DataGridView
             dgvStats = new DataGridView
             {
-                Size = new Size(1450, 500),
-                Location = new Point(20, 480),
+                Size = new Size(1130, 500),
+                Location = new Point(20, 370),
                 RowHeadersVisible = false,
                 AllowUserToAddRows = false,
                 ScrollBars = ScrollBars.Both,
@@ -190,10 +190,39 @@ namespace CountLinesCodeChanged_V3
         private async void BtnCountLines_Click(object sender, EventArgs e)
         {
             var repoPaths = txtRepoPaths.Lines.ToList();
-            if (!repoPaths.Any() || string.IsNullOrWhiteSpace(txtBranch.Text) || dtpEndDate.Value < dtpStartDate.Value)
+            bool isValid = repoPaths.Any() && !string.IsNullOrWhiteSpace(txtBranch.Text) && dtpEndDate.Value >= dtpStartDate.Value;
+            lblMessage.Visible = !isValid;
+            if (lblMessage.Visible)
+            {
+                if (!repoPaths.Any())
+                {
+                    lblMessage.Text = "Please select at least one repository.";
+                    return;
+                }
+                if (string.IsNullOrWhiteSpace(txtBranch.Text))
+                {
+                    lblMessage.Text = "Please enter a branch name.";
+                    return;
+                }
+                if (dtpEndDate.Value < dtpStartDate.Value)
+                {
+                    lblMessage.Text = "Please select a valid date range.";
+                    return;
+                }
+            }
+            if (!repoPaths.Any())
             {
                 MessageBox.Show("Please fill in all required fields: at least one repository path, a branch, and valid date range.");
                 return;
+            }
+            else if (string.IsNullOrWhiteSpace(txtBranch.Text))
+            {
+                MessageBox.Show("Please fill in all required fields: at least one repository path, a branch, and valid date range.");
+                return;
+            }
+            else if (dtpEndDate.Value < dtpStartDate.Value)
+            {
+                
             }
 
             allStats = await GitProcessor.ProcessRepositories(repoPaths, dtpStartDate.Value, dtpEndDate.Value, txtBranch.Text);
@@ -308,37 +337,20 @@ namespace CountLinesCodeChanged_V3
         }
         private void UpdateCountButtonState()
         {
-            bool isValid = repoPaths.Any() && !string.IsNullOrWhiteSpace(txtBranch.Text) && dtpEndDate.Value >= dtpStartDate.Value;
-            btnCountLines.Enabled = isValid;
-            lblMessage.Visible = !isValid;
-
-            if (lblMessage.Visible)
-            {
-                if (!repoPaths.Any())
-                {
-                    lblMessage.Text = "Please select at least one repository.";
-                }
-                if (string.IsNullOrWhiteSpace(txtBranch.Text))
-                {
-                    lblMessage.Text = "Please enter a branch name.";
-                }
-                if (dtpEndDate.Value < dtpStartDate.Value)
-                {
-                    lblMessage.Text = "Please select a valid date range.";
-                }
-            }
-
-            UpdateButtonSaveState();
-        }
-        private void UpdateButtonSaveState()
-        {
-            btnSaveJson.Enabled = btnSaveCsv.Enabled = allStats.Any();
+            //bool isValid = repoPaths.Any() && !string.IsNullOrWhiteSpace(txtBranch.Text) && dtpEndDate.Value >= dtpStartDate.Value;
+            //btnCountLines.Enabled = isValid;
         }
 
         private void BtnSaveJson_Click(object sender, EventArgs e)
         {
             try
             {
+                if (!allStats.Any())
+                {
+                    MessageBox.Show("No data to save.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
                 using (var sfd = new SaveFileDialog())
                 {
                     sfd.Filter = "JSON files (*.json)|*.json";
@@ -366,6 +378,11 @@ namespace CountLinesCodeChanged_V3
         {
             try
             {
+                if (!allStats.Any())
+                {
+                    MessageBox.Show("No data to save.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
                 using (var sfd = new SaveFileDialog())
                 {
                     sfd.Filter = "CSV files (*.csv)|*.csv";
@@ -411,5 +428,6 @@ namespace CountLinesCodeChanged_V3
                 return $"\"{value.Replace("\"", "\"\"")}\"";
             return value;
         }
+        private Button button1;
     }
 }
