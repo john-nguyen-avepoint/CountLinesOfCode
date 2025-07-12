@@ -4,7 +4,7 @@ namespace CountLinesCodeChanged_V3.Logic
 {
     public static class GitProcessor
     {
-        public static async Task<List<RepositoryStats>> ProcessRepositories(List<string> repoPaths, DateTime startDate, DateTime endDate, string branch)
+        public static List<RepositoryStats> ProcessRepositories(List<string> repoPaths, DateTime startDate, DateTime endDate, string branch)
         {
             var stats = new List<RepositoryStats>();
             var cache = CacheManager.LoadCache();
@@ -24,7 +24,7 @@ namespace CountLinesCodeChanged_V3.Logic
                     // If cache is not valid, process repository
                     var repoName = Path.GetFileName(repoPath);
                     var branchCommits = repo.Branches[branch]?.Commits
-                        .Where(c => c.Committer.When.DateTime >= startDate && c.Committer.When.DateTime <= endDate)
+                        .Where(c => !c.Message.ToLower().StartsWith("merge branch") && c.Committer.When.DateTime >= startDate && c.Committer.When.DateTime <= endDate)
                         .ToList() ?? new List<Commit>();
 
                     var authorStats = branchCommits
@@ -64,7 +64,9 @@ namespace CountLinesCodeChanged_V3.Logic
             }
             // Save cache
             CacheManager.SaveCache(cache);
-            return stats;
+            return stats.OrderBy(p => p.RepoName)
+                .OrderByDescending(p => p.CommitCount)
+                .OrderByDescending(p => p.AddedLines).ToList();
         }
 
         public static List<(string RepoName, int TotalCommits, int TotalAuthors, int TotalAdded, int TotalRemoved, double AddPerRemove, double AddPerTotal, double RemovePerTotal)> GetSummary(List<RepositoryStats> stats)

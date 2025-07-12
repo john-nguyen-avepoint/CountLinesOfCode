@@ -45,7 +45,7 @@ namespace CountLinesCodeChanged_V3
             // Message label
             lblMessage = new Label
             {
-                Text = "Please fill in all required fields: at least one repository path, a branch, and valid date range.",
+                Text = "Please fill in all required fields: at least one repository path.",
                 AutoSize = true,
                 Location = new Point(230, 140),
                 ForeColor = Color.Red,
@@ -174,12 +174,13 @@ namespace CountLinesCodeChanged_V3
                 MinimumWidth = 100
             };
             dgvStats.Columns.Add(buttonColumn);
+            dgvStats.Columns["ShowCommits"].DefaultCellStyle.Font = new Font("Segoe UI", 10);
             dgvStats.Columns["Author"].DefaultCellStyle.Font = new Font("Segoe UI", 12, FontStyle.Bold);
             dgvStats.Columns["RepoName"].DefaultCellStyle.Font = new Font("Segoe UI", 12, FontStyle.Bold);
             dgvStats.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
             dgvStats.ColumnHeadersHeight = 50; // Tăng chiều cao header lên 50 pixels
             dgvStats.ColumnHeadersHeight = 50;
-            dgvStats.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False; // Ngăn wrap tiêu đề
+            //dgvStats.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False; // Ngăn wrap tiêu đề
             dgvStats.CellContentClick += DgvStats_CellContentClick;
             foreach (DataGridViewColumn column in dgvStats.Columns)
             {
@@ -225,9 +226,21 @@ namespace CountLinesCodeChanged_V3
                 
             }
 
-            allStats = await GitProcessor.ProcessRepositories(repoPaths, dtpStartDate.Value, dtpEndDate.Value, txtBranch.Text);
-            UpdateSummary();
-            UpdateDataGridView(allStats);
+            try
+            {
+                Cursor = Cursors.WaitCursor; // Đặt con trỏ quay
+                allStats = GitProcessor.ProcessRepositories(repoPaths, dtpStartDate.Value, dtpEndDate.Value, txtBranch.Text);
+                UpdateSummary();
+                UpdateDataGridView(allStats);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error processing repositories: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                Cursor = Cursors.Default; // Khôi phục con trỏ
+            }
         }
 
 
@@ -337,8 +350,10 @@ namespace CountLinesCodeChanged_V3
         }
         private void UpdateCountButtonState()
         {
-            //bool isValid = repoPaths.Any() && !string.IsNullOrWhiteSpace(txtBranch.Text) && dtpEndDate.Value >= dtpStartDate.Value;
+            bool isValid = repoPaths.Any() && !string.IsNullOrWhiteSpace(txtBranch.Text) && dtpEndDate.Value >= dtpStartDate.Value;
+            lblMessage.Text = "";
             //btnCountLines.Enabled = isValid;
+
         }
 
         private void BtnSaveJson_Click(object sender, EventArgs e)
