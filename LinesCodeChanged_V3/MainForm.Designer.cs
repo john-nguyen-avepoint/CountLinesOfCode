@@ -22,6 +22,8 @@ namespace CountLinesCodeChanged_V3
         private Button btnCountLines;
         private DataGridView dgvSummary;
         private DataGridView dgvStats;
+        private DataGridView dgvSummaryForAuthor;
+        private TextBox txtSearchSummaryForAuthor;
         private Label lblMessage;
         private List<string> repoPaths = new List<string>();
         private List<RepositoryStats> allStats = new List<RepositoryStats>();
@@ -36,7 +38,7 @@ namespace CountLinesCodeChanged_V3
         {
             this.Size = new Size(1300, 1000);
             this.Text = "Code Line Counter";
-            this.Font = new Font("Segoe UI", 11);
+            this.Font = new Font("Segoe UI", 9);
 
             // Repository selection
             btnSelectRepos = new Button { Text = "Select\nRepositories", Size = new Size(100, 100), Location = new Point(430, 20) };
@@ -79,30 +81,31 @@ namespace CountLinesCodeChanged_V3
             txtBranch.TextChanged += (s, e) => UpdateCountButtonState();
 
             // Count lines button
-            btnCountLines = new Button { Text = "Retrieve", Size = new Size(200, 40), Location = new Point(20, 130), BackColor = Color.LightBlue };
+            btnCountLines = new Button { Text = "Retrieve", Size = new Size(200, 40), Location = new Point(20, 130), BackColor = Color.LightGreen };
             btnCountLines.Enabled = true;
             btnCountLines.Click += BtnCountLines_Click;
 
             // Search label and bar
-            var lblSearch = new Label { Text = "Search:", AutoSize = true, Location = new Point(20, 180) };
-            txtSearch = new TextBox { PlaceholderText = "Search by author, repository...", Size = new Size(300, 40), Location = new Point(100, 175) };
+            var lblSearch = new Label { Text = "Search:", AutoSize = true, Location = new Point(20, 345) };
+            txtSearch = new TextBox { PlaceholderText = "Search by author, repository...", Size = new Size(300, 40), Location = new Point(100, 340) };
             txtSearch.TextChanged += TxtSearch_TextChanged;
 
             // Save JSON button
-            btnSaveJson = new Button { Text = "Save JSON", Size = new Size(100, 40), Location = new Point(920, 170), BackColor = Color.LightBlue };
+            btnSaveJson = new Button { Text = "Save JSON", Size = new Size(100, 40), Location = new Point(920, 20), BackColor = Color.LightGreen };
             btnSaveJson.Enabled = true;
             btnSaveJson.Click += BtnSaveJson_Click;
 
             // Save CSV button
-            btnSaveCsv = new Button { Text = "Save CSV", Size = new Size(100, 40), Location = new Point(1030, 170), BackColor = Color.LightBlue };
+            btnSaveCsv = new Button { Text = "Save CSV", Size = new Size(100, 40), Location = new Point(1030, 20), BackColor = Color.LightGreen };
             btnSaveCsv.Enabled = true;
             btnSaveCsv.Click += BtnSaveCsv_Click;
 
             // Summary panel
+            var lblSummary = new Label { Text = "Summary:", AutoSize = true, Location = new Point(20, 200) };
             dgvSummary = new DataGridView
             {
-                Size = new Size(1130, 150),
-                Location = new Point(20, 210),
+                Size = new Size(600, 140),
+                Location = new Point(20, 180),
                 RowHeadersVisible = false,
                 AllowUserToAddRows = false,
                 ScrollBars = ScrollBars.Both,
@@ -113,10 +116,38 @@ namespace CountLinesCodeChanged_V3
             };
             SetupSummaryDataGridView();
 
+            var lblSummaryForAuthor = new Label { Text = "Summary For Author: ", AutoSize = true, Location = new Point(640, 150) };
+            txtSearchSummaryForAuthor = new TextBox
+            {
+                PlaceholderText = "Search by author...",
+                Size = new Size(300, 40),
+                Location = new Point(720, 145)
+            };
+
+            txtSearchSummaryForAuthor.TextChanged += (s, e) =>
+            {
+                UpdateSummaryForAuthorDataGridView(allStats);
+            };
+
+            dgvSummaryForAuthor = new DataGridView
+            {
+                Size = new Size(600, 140),
+                Location = new Point(640, 180),
+                RowHeadersVisible = false,
+                AllowUserToAddRows = false,
+                ScrollBars = ScrollBars.Both,
+                AllowUserToResizeColumns = true,
+                AllowUserToResizeRows = true,
+                AllowUserToOrderColumns = true,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+            };
+            SetupSummaryForAuthorDataGridView();
+
             // DataGridView
+            var lblStats = new Label { Text = "Summary:", AutoSize = true, Location = new Point(20, 380) };
             dgvStats = new DataGridView
             {
-                Size = new Size(1130, 500),
+                Size = new Size(1130, 400),
                 Location = new Point(20, 370),
                 RowHeadersVisible = false,
                 AllowUserToAddRows = false,
@@ -128,7 +159,9 @@ namespace CountLinesCodeChanged_V3
             };
             SetupDataGridView();
 
-            this.Controls.AddRange(new Control[] { btnSelectRepos, lblMessage, txtRepoPaths, lblStartDate, dtpStartDate, lblEndDate, dtpEndDate, lblBranch, txtBranch, btnCountLines, lblSearch, txtSearch, btnSaveJson, btnSaveCsv, dgvSummary, dgvStats });
+
+
+            this.Controls.AddRange(new Control[] { btnSelectRepos, lblMessage, txtRepoPaths, lblStartDate, dtpStartDate, lblEndDate, dtpEndDate, lblBranch, txtBranch, btnCountLines, lblSearch, txtSearch, btnSaveJson, btnSaveCsv, dgvSummary, dgvStats, txtSearchSummaryForAuthor, lblSummaryForAuthor, dgvSummaryForAuthor });
         }
 
         private void SetupSummaryDataGridView()
@@ -138,13 +171,10 @@ namespace CountLinesCodeChanged_V3
             dgvSummary.Columns.Add("TotalAuthors", "Total Authors");
             dgvSummary.Columns.Add("TotalAdded", "Total Added");
             dgvSummary.Columns.Add("TotalRemoved", "Total Removed");
-            dgvSummary.Columns.Add("AddPerRemove", "Add/Remove");
-            dgvSummary.Columns.Add("AddPerTotal", "Add/Total %");
-            dgvSummary.Columns.Add("RemovePerTotal", "Remove/Total %");
+            dgvSummary.Columns.Add("AddPerRemove", "Add / Remove");
             dgvSummary.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
             dgvSummary.ColumnHeadersHeight = 50; // Giữ chiều cao header giống dgvStats
             dgvSummary.Columns["RepoName"].DefaultCellStyle.Font = new Font("Segoe UI", 12, FontStyle.Bold);
-            dgvSummary.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False; // Ngăn wrap tiêu đề
             foreach (DataGridViewColumn column in dgvSummary.Columns)
             {
                 column.MinimumWidth = 70;
@@ -153,7 +183,6 @@ namespace CountLinesCodeChanged_V3
 
         private void SetupDataGridView()
         {
-
             dgvStats.Columns.Add("Author", "Author");
             dgvStats.Columns.Add("RepoName", "Repository");
             dgvStats.Columns.Add("Branch", "Branch");
@@ -161,9 +190,7 @@ namespace CountLinesCodeChanged_V3
             dgvStats.Columns.Add("AddedLines", "Added Lines");
             dgvStats.Columns.Add("RemovedLines", "Removed Lines");
             dgvStats.Columns.Add("TotalChangedLines", "Total Changed");
-            dgvStats.Columns.Add("AddPerRemovePercentage", "Add/Remove");
-            dgvStats.Columns.Add("AddPerTotalPercentage", "Add/Total %");
-            dgvStats.Columns.Add("RemovePerTotalPercentage", "Remove/Total %");
+            dgvStats.Columns.Add("AddPerRemovePercentage", "Add / Remove");
             var buttonColumn = new DataGridViewButtonColumn
             {
                 Name = "ShowCommits",
@@ -179,7 +206,6 @@ namespace CountLinesCodeChanged_V3
             dgvStats.Columns["RepoName"].DefaultCellStyle.Font = new Font("Segoe UI", 12, FontStyle.Bold);
             dgvStats.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
             dgvStats.ColumnHeadersHeight = 50; // Tăng chiều cao header lên 50 pixels
-            dgvStats.ColumnHeadersHeight = 50;
             //dgvStats.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False; // Ngăn wrap tiêu đề
             dgvStats.CellContentClick += DgvStats_CellContentClick;
             foreach (DataGridViewColumn column in dgvStats.Columns)
@@ -188,7 +214,24 @@ namespace CountLinesCodeChanged_V3
             }
         }
 
-        private async void BtnCountLines_Click(object sender, EventArgs e)
+        private void SetupSummaryForAuthorDataGridView()
+        {
+            dgvSummaryForAuthor.Columns.Add("Author", "Author");
+            dgvSummaryForAuthor.Columns.Add("RepoName", "All Repository");
+            dgvSummaryForAuthor.Columns.Add("Branch", "All Branch");
+            dgvSummaryForAuthor.Columns.Add("CommitCount", "All Commits");
+            dgvSummaryForAuthor.Columns.Add("AddedLines", "All Added Lines");
+            dgvSummaryForAuthor.Columns.Add("RemovedLines", "All Removed Lines");
+            dgvSummaryForAuthor.Columns.Add("TotalChangedLines", "All Total Changed");
+            dgvSummaryForAuthor.Columns.Add("AddPerRemovePercentage", "Add / Remove");
+            dgvSummaryForAuthor.ColumnHeadersHeight = 50;
+            foreach (DataGridViewColumn column in dgvSummaryForAuthor.Columns)
+            {
+                column.MinimumWidth = 70;
+            }
+        }
+
+        private void BtnCountLines_Click(object sender, EventArgs e)
         {
             var repoPaths = txtRepoPaths.Lines.ToList();
             bool isValid = repoPaths.Any() && !string.IsNullOrWhiteSpace(txtBranch.Text) && dtpEndDate.Value >= dtpStartDate.Value;
@@ -223,7 +266,7 @@ namespace CountLinesCodeChanged_V3
             }
             else if (dtpEndDate.Value < dtpStartDate.Value)
             {
-                
+
             }
 
             try
@@ -232,6 +275,7 @@ namespace CountLinesCodeChanged_V3
                 allStats = GitProcessor.ProcessRepositories(repoPaths, dtpStartDate.Value, dtpEndDate.Value, txtBranch.Text);
                 UpdateSummary();
                 UpdateDataGridView(allStats);
+                UpdateSummaryForAuthorDataGridView(allStats);
             }
             catch (Exception ex)
             {
@@ -279,6 +323,37 @@ namespace CountLinesCodeChanged_V3
                     stat.AddPerRemovePercentage,
                     stat.AddPerTotalPercentage,
                     stat.RemovePerTotalPercentage
+                );
+            }
+        }
+        private void UpdateSummaryForAuthorDataGridView(List<RepositoryStats> stats)
+        {
+            dgvSummaryForAuthor.Rows.Clear();
+            var summaryForAuthor = stats.GroupBy(x => x.Author)
+                .Select(x => new
+                {
+                    Author = x.Key,
+                    RepoName = string.Join(";", x.Select(p => p.RepoName).Distinct()),
+                    Branch = string.Join(";", x.Select(p => p.Branch).Distinct()),
+                    TotalCommits = x.Sum(y => y.CommitCount),
+                    TotalAdded = x.Sum(y => y.AddedLines),
+                    TotalRemoved = x.Sum(y => y.RemovedLines),
+                    TotalChangedLines = x.Sum(y => y.TotalChangedLines),
+                }).ToList();
+            foreach (var stat in summaryForAuthor)
+            {
+                var removedLines = stat.TotalAdded == 0 ? 1 : stat.TotalAdded;
+                dgvSummaryForAuthor.Rows.Add(
+                    stat.Author,
+                    stat.RepoName,
+                    stat.Branch,
+                    stat.TotalCommits,
+                    stat.TotalAdded,
+                    stat.TotalRemoved,
+                    stat.TotalChangedLines,
+                    Math.Round((double)(stat.TotalAdded / removedLines), 2),
+                    Math.Round((double)(stat.TotalAdded / stat.TotalChangedLines), 2),
+                    Math.Round((double)stat.TotalRemoved / stat.TotalChangedLines, 2)
                 );
             }
         }
